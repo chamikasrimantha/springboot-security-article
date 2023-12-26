@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="wrap">
+
+    <div class="box">
+        <div class="content-box">
+            <h1 style="color: blue;">Understanding JWT Authentication in Spring Boot</h1>
+            <p>Exploring the integration of JSON Web Token (JWT) authentication within a Spring Boot
+                application, this article delves into the powerful security features of Spring Boot
+                while highlighting the stateless and secure nature of JWTs, offering developers insights
+                into creating scalable and resilient authentication systems for modern web applications.</p>
+        </div>
+    </div>
+
+    <br>
+
+    <div class="author-info">
+        <img src="me.jpg" alt="Your Name">
+        <div>
+            <h1>Chamika Srimantha</h1>
+            <p>Bsc (Hons) Computer Science in Software Engineering (reading)</p>
+            <p>5 mins read</p>
+        </div>
+    </div>
+
+    <br><br>
+    <div class="box">
+        <div class="content-box1">
+            <h2>Table of Contents:</h2>
+            <ol>
+                <li><a href="#introduction">#1 Introduction</a></li>
+                <li><a href="#spring-boot-security">#2 Understanding Spring Boot Security</a></li>
+                <li><a href="#jwt-authentication">#3 What is JWT Authentication?</a></li>
+                <li><a href="#implementing-jwt">#4 Implementing JWT Authentication in Spring Boot</a></li>
+                <li><a href="#conclusion">#5 Conclusion</a></li>
+            </ol>
+        </div>
+    </div>
+
+    <h3 id=#introduction>#1 Introduction:</h3>
+    <p>Security is a critical aspect of modern web applications. Integrating robust authentication
+        mechanisms is crucial for safeguarding sensitive data and preventing unauthorized access.
+        This article focuses on the implementation of JSON Web Token (JWT) authentication within a
+        Spring Boot application. By combining the powerful security features of Spring Boot with the
+        stateless and secure nature of JWTs, developers can create a scalable and resilient authentication
+        system.</p>
+
+    <h3 id="#spring-boot-security">#2 Understanding Spring Boot Security:</h3>
+    <p>Spring Boot, built on top of the Spring framework, simplifies Java application development.
+        Its security module, Spring Security, provides a comprehensive suite of tools for securing
+        REST APIs and web applications. While traditional session-based authentication methods are
+        effective, they might not suit the needs of modern, distributed systems. JWT authentication
+        offers a stateless alternative that aligns well with the requirements of such applications.</p>
+
+    <h3 id="jwt-authentication">#3 What is JWT Authentication?</h3>
+    <p>JWTs are compact tokens comprising three parts: header, payload, and signature.
+        They encode information in a JSON format and facilitate secure data transmission between
+        parties. JWTs are signed, ensuring data integrity and authenticity. Their simplicity and
+        flexibility make them an ideal choice for authentication, enabling applications to remain
+        stateless and supporting horizontal scaling.</p>
+
+    <h3 id="implementing-jwt">#4 Implementing JWT Authentication in Spring Boot:</h3>
+
+    <h4>Step 1: Create a Spring Boot Project</h4>
+    <p>Initiate a new Spring Boot project using Spring Initializr or your preferred IDE,
+        setting up the required dependencies.</p>
+
+    <h4>Step 2: Add Dependencies</h4>
+    <p>In the project's pom.xml file, include dependencies for Spring Security and the JWT library:</p>
+    <figure>
+        <!-- <figcaption>Your code title</figcaption> -->
+        <pre>
+          <code contenteditable spellcheck="false">
+            &lt;dependency&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-starter-security&lt;/artifactId&gt;
+            &lt;/dependency&gt;
+            &lt;dependency&gt;
+                &lt;groupId&gt;io.jsonwebtoken&lt;/groupId&gt;
+                &lt;artifactId&gt;jjwt-api&lt;/artifactId&gt;
+                &lt;version&gt;0.11.3&lt;/version&gt;
+            &lt;/dependency&gt;
+            &lt;dependency&gt;
+                &lt;groupId&gt;io.jsonwebtoken&lt;/groupId&gt;
+                &lt;artifactId&gt;jjwt-impl&lt;/artifactId&gt;
+                &lt;version&gt;0.11.3&lt;/version&gt;
+                &lt;scope&gt;runtime&lt;/scope&gt;
+            &lt;/dependency&gt;
+            &lt;dependency&gt;
+                &lt;groupId&gt;io.jsonwebtoken&lt;/groupId&gt;
+                &lt;artifactId&gt;jjwt-jackson&lt;/artifactId&gt;
+                &lt;version&gt;0.11.3&lt;/version&gt;
+                &lt;scope&gt;runtime&lt;/scope&gt;
+            &lt;/dependency&gt;            
+          </code>
+        </pre>
+    </figure>
+
+    <h4>Step 3: Configure Security</h4>
+    <p>Create a SecurityConfig class to configure security settings:</p>
+    <figure>
+        <pre>
+            <code contenteditable spellcheck="false">
+                @Configuration
+                @EnableWebSecurity
+                public class SecurityConfig extends WebSecurityConfigurerAdapter {
+                
+                    @Override
+                    protected void configure(HttpSecurity http) throws Exception {
+                        http.csrf().disable()
+                            .authorizeRequests()
+                            .antMatchers("/api/public").permitAll() // Public endpoint
+                            .anyRequest().authenticated()
+                            .and()
+                            .addFilter(new JwtAuthenticationFilter(authenticationManager()))
+                            .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+                    }
+                
+                    // Other configurations and beans
+                }                
+            </code>
+        </pre>
+    </figure>
+
+    <h4>Step 4: Implement JWT Generation and Validation</h4>
+    <p>Develop a utility class, JwtUtils, to handle token generation and validation:</p>
+    <figure>
+        <pre>
+            <code contenteditable spellcheck="false">
+                public class JwtUtils {
+                    private static final String SECRET_KEY = "yourSecretKey"; // Replace with a strong secret key
+                    private static final long EXPIRATION_TIME = 864_000_000; // 10 days
+                
+                    public static String generateToken(String username) {
+                        return Jwts.builder()
+                                .setSubject(username)
+                                .setIssuedAt(new Date(System.currentTimeMillis()))
+                                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+                                .compact();
+                    }
+                
+                    public static boolean validateToken(String token) {
+                        try {
+                            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
+                            return true;
+                        } catch (Exception e) {
+                            return false;
+                        }
+                    }
+                
+                    // Other JWT-related methods
+                }                
+            </code>
+        </pre>
+    </figure>
+
+    <h4>Step 5: Create Authentication Filter</h4>
+    <p>Implement a filter, JwtAuthenticationFilter, to validate JWTs and authenticate requests:</p>
+    <figure>
+        <pre>
+            <code contenteditable spellcheck="false">
+                public class JwtAuthenticationFilter extends OncePerRequestFilter {
+                    private final AuthenticationManager authenticationManager;
+                
+                    public JwtAuthenticationFilter(AuthenticationManager authenticationManager) {
+                        this.authenticationManager = authenticationManager;
+                    }
+                
+                    @Override
+                    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                                    FilterChain filterChain) throws ServletException, IOException {
+                        String jwt = extractJwtFromRequest(request);
+                
+                        if (jwt != null && JwtUtils.validateToken(jwt)) {
+                            String username = extractUsername(jwt);
+                            UserDetails userDetails = new User(username, "", new ArrayList<>());
+                            UsernamePasswordAuthenticationToken authenticationToken =
+                                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                        }
+                
+                        filterChain.doFilter(request, response);
+                    }
+                
+                    // Methods to extract JWT and username
+                }                
+            </code>
+        </pre>
+    </figure>
+
+    <h3 id="conclusion">#5 Conclusion</h3>
+    <p>Integrating JWT authentication into a Spring Boot application provides a robust
+        security layer while accommodating the stateless nature of modern applications.
+        This approach offers a secure and scalable authentication mechanism for web services
+        and APIs.</p>
+    <p>The steps outlined in this guide serve as a foundational implementation of JWT
+        authentication within Spring Boot. Developers can further enhance the system by
+        incorporating token expiration policies, role-based access control, and refresh
+        token mechanisms based on specific application requirements.</p>
+    <p>By leveraging Spring Boot's security capabilities and the simplicity of JWTs,
+        developers can ensure a more resilient and secure authentication mechanism for their
+        applications.</p>
+
+    <p></p>
+    <br>
+
+</div>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; 2023 Chamika Srimantha. All Rights Reserved</p>
+            <ul>
+                <li><a href="https://chamika-srimantha.me">Portfolio</a></li>
+                <li><a href="https://chamika-srimantha.me">Contact Me</a></li>
+            </ul>
+        </div>
+    </footer>
+
+</body>
+
+</html>
